@@ -321,6 +321,8 @@
 
   /* -------------------------------------------------------------- hero */
   function initHero() {
+    var hero = $('.hero');
+    if (!hero) return;
     var title = $('[data-hero-title]');
     var tl = gsap.timeline({ delay: 0.15 });
     if (title) {
@@ -345,7 +347,6 @@
     tl.from('[data-hero-badge]', { scale: 0.4, rotate: -90, opacity: 0, duration: 1.6 }, 0.9);
     tl.from('[data-hero-monogram]', { opacity: 0, scale: 1.08, duration: 2.6, ease: 'power2.out' }, 0);
 
-    var hero = $('.hero');
     gsap.to('[data-hero-monogram]', { yPercent: 18, rotate: -4, ease: 'none', scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom top', scrub: true } });
     gsap.to('.hero__img img', { yPercent: 10, ease: 'none', scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom top', scrub: true } });
     gsap.to('[data-hero-badge]', { rotate: 220, ease: 'none', scrollTrigger: { trigger: doc.body, start: 'top top', end: 'bottom bottom', scrub: 0.6 } });

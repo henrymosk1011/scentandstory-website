@@ -38,6 +38,18 @@ npm run dev                      # http://localhost:8787, rebuilds on save
 
 `npm run build` writes the static site to `dist/` without starting a server.
 
+## Preview on GitHub Pages
+
+Every push to `main` or a `claude/*` branch publishes a preview to
+**https://henrymosk1011.github.io/scentandstory-website/** through
+`.github/workflows/pages.yml`.
+
+* One time setup: repo **Settings**, **Pages**, **Build and deployment**, **Source: GitHub Actions**.
+  Then rerun the latest workflow from the **Actions** tab (or push any commit).
+* The preview is built with `BASE_PATH` and `PREVIEW=1`, so every link points inside the sub path
+  and every page is `noindex`. Search engines only see the real domain.
+* The inquiry form needs the Cloudflare Worker, so it does not send from the preview.
+
 ## Deploying
 
 ### 1. Cloudflare Worker from GitHub

@@ -3,6 +3,9 @@
 // sitemap.xml, robots.txt, site.webmanifest and the _headers security policy.
 //
 //   node build.mjs
+//
+// Preview builds for GitHub Pages, which serves the site from a sub path:
+//   BASE_PATH=/scentandstory-website PREVIEW=1 node build.mjs
 
 import { readFileSync, writeFileSync, mkdirSync, rmSync, cpSync, readdirSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -25,10 +28,23 @@ const esc = (s) =>
 const hash = (buf, len = 10) => createHash('sha256').update(buf).digest('hex').slice(0, len);
 const photos = JSON.parse(read(join(STATIC, 'img/photos/manifest.json')));
 
+// Preview builds live under a sub path and are never indexed, so search engines
+// only ever see the real domain.
+const BASE = (process.env.BASE_PATH || '').replace(/\/+$/, '');
+const PREVIEW = process.env.PREVIEW === '1';
+const withBase = (text) =>
+  !BASE
+    ? text
+    : text
+        .replace(/(\s(?:href|src|action)=")\/(?!\/)/g, `$1${BASE}/`)
+        .replace(/(\ssrcset=")([^"]*)"/g, (_, attr, v) => `${attr}${v.replace(/(^|,\s*)\/(?!\/)/g, `$1${BASE}/`)}"`)
+        .replace(/url\((['"]?)\/(?!\/)/g, `url($1${BASE}/`);
+
 // ---------------------------------------------------------------- clean + copy
 rmSync(DIST, { recursive: true, force: true });
 mkdirSync(DIST, { recursive: true });
 cpSync(STATIC, DIST, { recursive: true, filter: (src) => !src.endsWith('manifest.json') });
+if (BASE) writeFileSync(join(DIST, 'css/main.css'), withBase(read(join(STATIC, 'css/main.css'))));
 
 // ---------------------------------------------------------------- boot script
 // Runs before first paint: flags JS + motion so content can be pre-hidden for
@@ -274,14 +290,14 @@ for (const file of readdirSync(join(SRC, 'pages')).filter((f) => f.endsWith('.ht
   if (!fm) throw new Error(`Missing front matter in ${file}`);
   const page = JSON.parse(fm[1]);
   page.canonical = `${site.url}${page.path === '/404' ? '/' : page.path}`;
-  page.robots = page.noindex ? 'noindex, follow' : 'index, follow, max-image-preview:large';
+  page.robots = PREVIEW ? 'noindex, nofollow' : page.noindex ? 'noindex, follow' : 'index, follow, max-image-preview:large';
   page.bodyClass = page.bodyClass || '';
   const body = raw.slice(fm[0].length);
   const html = render(layout.replace('{{content}}', () => body.replace(/\s+$/, '')), page);
   if (/[–—]/.test(html)) throw new Error(`En or em dash found in ${page.out}. House style forbids dashes.`);
   const dest = join(DIST, page.out);
   mkdirSync(dirname(dest), { recursive: true });
-  writeFileSync(dest, html);
+  writeFileSync(dest, withBase(html));
   built.push(page);
 }
 
@@ -302,14 +318,14 @@ writeFileSync(
     {
       name: site.legalName,
       short_name: site.name,
-      start_url: '/',
+      start_url: `${BASE}/`,
       display: 'browser',
       background_color: '#FFF8F6',
       theme_color: site.themeColor,
       icons: [
-        { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-        { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
-        { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        { src: `${BASE}/icon-192.png`, sizes: '192x192', type: 'image/png' },
+        { src: `${BASE}/icon-512.png`, sizes: '512x512', type: 'image/png' },
+        { src: `${BASE}/icon-512.png`, sizes: '512x512', type: 'image/png', purpose: 'maskable' },
       ],
     },
     null,
@@ -336,7 +352,7 @@ const csp = [
   'upgrade-insecure-requests',
 ].join('; ');
 
-writeFileSync(
+if (!PREVIEW) writeFileSync(
   join(DIST, '_headers'),
   `/*
   Content-Security-Policy: ${csp}
@@ -364,4 +380,4 @@ writeFileSync(
 `,
 );
 
-console.log(`Built ${built.length} pages into dist/ (${built.map((p) => p.out).join(', ')})`);
+console.log(`Built ${built.length} pages into dist/${PREVIEW ? ` as a noindex preview under ${BASE || '/'}` : ''} (${built.map((p) => p.out).join(', ')})`);
