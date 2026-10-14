@@ -1,0 +1,41 @@
+<header class="site-header" data-header>
+    <div class="site-header__inner">
+      <a class="brand" href="/" aria-label="Scent and Story Perfume Bar, home">
+        <img src="/img/brand/logo-wordmark.svg" alt="" width="521" height="117">
+      </a>
+      <nav class="nav" aria-label="Primary">
+        <ul class="nav__list" role="list">
+          <li><a class="nav__link" href="/#experience">{{roll:The Experience}}</a></li>
+          <li><a class="nav__link" href="/#packages">{{roll:Packages}}</a></li>
+          <li><a class="nav__link" href="/#occasions">{{roll:Occasions}}</a></li>
+          <li><a class="nav__link" href="/#gallery">{{roll:Gallery}}</a></li>
+          <li><a class="nav__link" href="/#faq">{{roll:FAQ}}</a></li>
+        </ul>
+      </nav>
+      <a class="btn btn--small site-header__cta" href="/#inquire" data-magnetic><span class="btn__label">Inquire</span></a>
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="menu" data-menu-toggle>
+        <span class="menu-toggle__open">Menu</span>
+        <span class="menu-toggle__close" aria-hidden="true">Close</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="menu" id="menu" data-menu hidden>
+    <div class="menu__inner">
+      <img class="menu__monogram" src="/img/brand/monogram.svg" alt="" width="424" height="190">
+      <nav aria-label="Mobile">
+        <ul class="menu__list" role="list">
+          <li><a class="menu__link" href="/#experience"><span>The Experience</span></a></li>
+          <li><a class="menu__link" href="/#packages"><span>Packages</span></a></li>
+          <li><a class="menu__link" href="/#occasions"><span>Occasions</span></a></li>
+          <li><a class="menu__link" href="/#gallery"><span>Gallery</span></a></li>
+          <li><a class="menu__link" href="/#faq"><span>FAQ</span></a></li>
+          <li><a class="menu__link" href="/#inquire"><span><em>Inquire</em></span></a></li>
+        </ul>
+      </nav>
+      <div class="menu__foot">
+        <a href="mailto:{{site.email}}">{{site.email}}</a>
+        {{social}}
+      </div>
+    </div>
+  </div>

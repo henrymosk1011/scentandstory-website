@@ -1,0 +1,50 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "scentandstory",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-10-01",
+
+  // `wrangler deploy` and `wrangler dev` run the static build first.
+  "build": {
+    "command": "node build.mjs",
+    "watch_dir": ["src", "static"]
+  },
+
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    "html_handling": "auto-trailing-slash",
+    // Only the contact API runs the Worker. Every page, image and font is
+    // served straight from the edge with the rules in dist/_headers.
+    "run_worker_first": ["/api/*"]
+  },
+
+  "vars": {
+    "CONTACT_TO": "info@scentandstory.co",
+    "CONTACT_FROM": "Scent and Story Website <website@scentandstory.co>",
+    "ALLOWED_ORIGINS": "https://scentandstory.co,https://www.scentandstory.co"
+  },
+
+  // Five inquiries per minute per visitor IP, per Cloudflare location.
+  "ratelimits": [
+    {
+      "name": "CONTACT_LIMITER",
+      "namespace_id": "1101",
+      "simple": { "limit": 5, "period": 60 }
+    }
+  ],
+
+  "observability": { "enabled": true },
+
+  // Uncomment once scentandstory.co is an active zone in your Cloudflare account
+  // (nameservers switched at GoDaddy). Cloudflare then creates the DNS records
+  // and certificates for both hostnames automatically.
+  // "routes": [
+  //   { "pattern": "scentandstory.co", "custom_domain": true },
+  //   { "pattern": "www.scentandstory.co", "custom_domain": true }
+  // ],
+
+  "workers_dev": true,
+  "preview_urls": true
+}

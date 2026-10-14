@@ -1,0 +1,102 @@
+{
+  "bridalbottles": {
+    "width": 856,
+    "height": 1530,
+    "widths": [
+      480,
+      800,
+      856
+    ],
+    "color": "rgb(168,168,168)"
+  },
+  "greenmenu": {
+    "width": 856,
+    "height": 1295,
+    "widths": [
+      480,
+      800,
+      856
+    ],
+    "color": "rgb(104,120,104)"
+  },
+  "handbottle": {
+    "width": 856,
+    "height": 1296,
+    "widths": [
+      480,
+      800,
+      856
+    ],
+    "color": "rgb(24,8,8)"
+  },
+  "hero": {
+    "width": 1202,
+    "height": 1619,
+    "widths": [
+      480,
+      800,
+      1202
+    ],
+    "color": "rgb(120,88,56)"
+  },
+  "labeled": {
+    "width": 856,
+    "height": 563,
+    "widths": [
+      480,
+      800,
+      856
+    ],
+    "color": "rgb(24,24,8)"
+  },
+  "menuhands": {
+    "width": 856,
+    "height": 1147,
+    "widths": [
+      480,
+      800,
+      856
+    ],
+    "color": "rgb(24,24,24)"
+  },
+  "nightbar": {
+    "width": 856,
+    "height": 1295,
+    "widths": [
+      480,
+      800,
+      856
+    ],
+    "color": "rgb(8,8,8)"
+  },
+  "pinkbar": {
+    "width": 856,
+    "height": 1150,
+    "widths": [
+      480,
+      800,
+      856
+    ],
+    "color": "rgb(104,104,136)"
+  },
+  "pinkshawl": {
+    "width": 856,
+    "height": 566,
+    "widths": [
+      480,
+      800,
+      856
+    ],
+    "color": "rgb(232,232,232)"
+  },
+  "redhair": {
+    "width": 856,
+    "height": 1302,
+    "widths": [
+      480,
+      800,
+      856
+    ],
+    "color": "rgb(248,232,136)"
+  }
+}

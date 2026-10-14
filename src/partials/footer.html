@@ -1,0 +1,33 @@
+<footer class="site-footer">
+    <div class="container site-footer__top">
+      <div class="site-footer__hello">
+        <p class="eyebrow">Say hello</p>
+        <a class="site-footer__email" href="mailto:{{site.email}}">{{site.email}}</a>
+        <p class="site-footer__place">Based in Los Angeles, California.<br>Creating scent experiences for celebrations of every kind.</p>
+      </div>
+      <nav class="site-footer__nav" aria-label="Footer">
+        <ul role="list">
+          <li><a href="/#experience">The Experience</a></li>
+          <li><a href="/#packages">Packages</a></li>
+          <li><a href="/#occasions">Occasions</a></li>
+          <li><a href="/#gallery">Gallery</a></li>
+          <li><a href="/#faq">FAQ</a></li>
+          <li><a href="/#inquire">Inquire</a></li>
+        </ul>
+      </nav>
+      {{social}}
+    </div>
+
+    <div class="site-footer__logo" data-footer-logo>
+      <img src="/img/brand/logo.svg" alt="Scent and Story Perfume Bar" width="521" height="190" loading="lazy" decoding="async">
+    </div>
+
+    <div class="container site-footer__base">
+      <p>&copy; <span data-year>{{year}}</span> {{site.legalName}}. All rights reserved.</p>
+      <ul class="site-footer__legal" role="list">
+        <li><a href="/privacy/">Privacy Policy</a></li>
+        <li><a href="/accessibility/">Accessibility</a></li>
+      </ul>
+      <p class="site-footer__credit">Designed by <a href="{{site.designer.url}}" target="_blank" rel="noopener">{{site.designer.name}}<span class="visually-hidden"> (opens in a new tab)</span></a></p>
+    </div>
+  </footer>

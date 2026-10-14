@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{page.title}}</title>
+  <meta name="description" content="{{page.description}}">
+  <meta name="robots" content="{{page.robots}}">
+  <link rel="canonical" href="{{page.canonical}}">
+  <script>{{bootScript}}</script>
+
+  <link rel="preload" href="/fonts/bodoni-moda.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/jost.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="{{asset:/css/main.css}}">
+
+  <meta name="theme-color" content="{{site.themeColor}}">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="icon" href="/favicon.ico" sizes="48x48">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="{{site.legalName}}">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:title" content="{{page.ogTitle}}">
+  <meta property="og:description" content="{{page.description}}">
+  <meta property="og:url" content="{{page.canonical}}">
+  <meta property="og:image" content="{{site.url}}/img/og-image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="The Scent and Story Perfume Bar logo beside a row of fragrance dispensers at an event.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{page.ogTitle}}">
+  <meta name="twitter:description" content="{{page.description}}">
+  <meta name="twitter:image" content="{{site.url}}/img/og-image.jpg">
+  <meta name="geo.region" content="US-CA">
+  <meta name="geo.placename" content="Los Angeles">
+
+  {{jsonld}}
+
+  <script src="{{asset:/vendor/gsap.min.js}}" defer></script>
+  <script src="{{asset:/vendor/ScrollTrigger.min.js}}" defer></script>
+  <script src="{{asset:/vendor/SplitText.min.js}}" defer></script>
+  <script src="{{asset:/vendor/lenis.min.js}}" defer></script>
+  <script src="{{asset:/js/main.js}}" defer></script>
+</head>
+<body class="{{page.bodyClass}}">
+  <a class="skip-link" href="#main">Skip to main content</a>
+  {{> header}}
+  <main id="main" tabindex="-1">
+{{content}}
+  </main>
+  {{> footer}}
+</body>
+</html>
