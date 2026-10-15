@@ -61,6 +61,8 @@ const bootHash = createHash('sha256').update(bootScript).digest('base64');
 const icons = {
   arrow:
     '<svg class="icon icon--arrow" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="20" height="20"><path d="M4 12h15m0 0l-6-6m6 6l-6 6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  arrowLeft:
+    '<svg class="icon icon--arrow" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="20" height="20"><path d="M20 12H5m0 0l6-6m-6 6l6 6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   instagram:
     '<svg class="icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="22" height="22"><rect x="3.5" y="3.5" width="17" height="17" rx="5" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
   tiktok:
@@ -83,17 +85,21 @@ function picture(name, alt = '', sizes = '100vw', loading = 'lazy', cls = '') {
   );
 }
 
-function social() {
+function social(variant) {
   const links = Object.entries(site.social).filter(([, url]) => url);
   if (!links.length) return '';
   const label = { instagram: 'Instagram', tiktok: 'TikTok' };
+  const labeled = variant === 'labeled';
   return (
-    '<ul class="social" role="list">' +
+    `<ul class="social${labeled ? ' social--labeled' : ''}" role="list">` +
     links
-      .map(
-        ([k, url]) =>
-          `<li><a class="social__link" href="${esc(url)}" target="_blank" rel="noopener me">${icons[k] || ''}<span class="visually-hidden">${label[k] || k} (opens in a new tab)</span></a></li>`,
-      )
+      .map(([k, url]) => {
+        const name = label[k] || k;
+        const text = labeled
+          ? `<span>${name}</span><span class="visually-hidden"> ${esc(site.socialHandle || '')} (opens in a new tab)</span>`
+          : `<span class="visually-hidden">${name} ${esc(site.socialHandle || '')} (opens in a new tab)</span>`;
+        return `<li><a class="social__link" href="${esc(url)}" target="_blank" rel="noopener me">${icons[k] || ''}${text}</a></li>`;
+      })
       .join('') +
     '</ul>'
   );
@@ -265,10 +271,15 @@ function render(tpl, page) {
   out = out
     .replace(/\{\{render:(\w+)\}\}/g, (_, n) => renderers[n]())
     .replace(/\{\{pic:([^}]*)\}\}/g, (_, args) => picture(...args.split('|')))
+    .replace(/\{\{photo:(\w+)\}\}/g, (_, n) => {
+      const m = photos[n];
+      if (!m) throw new Error(`Unknown photo "${n}"`);
+      return `/img/photos/${n}-${m.widths[m.widths.length - 1]}.jpg`;
+    })
     .replace(/\{\{icon:(\w+)\}\}/g, (_, n) => icons[n])
     .replace(/\{\{roll:([^}]*)\}\}/g, (_, t) => `<span class="roll"><span class="roll__a">${t}</span><span class="roll__b" aria-hidden="true">${t}</span></span>`)
     .replace(/\{\{asset:([^}]*)\}\}/g, (_, p) => assetUrl(p))
-    .replace(/\{\{social\}\}/g, social)
+    .replace(/\{\{social(?::(\w+))?\}\}/g, (_, v) => social(v))
     .replace(/\{\{jsonld\}\}/g, () => jsonld(page))
     .replace(/\{\{bootScript\}\}/g, () => bootScript)
     .replace(/\{\{year\}\}/g, year)

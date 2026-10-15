@@ -271,6 +271,55 @@
     });
   }
 
+  /* -------------------------------------------------------------- gallery lightbox */
+  var lightbox = $('[data-lightbox]');
+  if (lightbox && typeof lightbox.showModal === 'function') initLightbox(lightbox);
+
+  function initLightbox(dialog) {
+    var links = $$('[data-gallery-open]');
+    var img = $('[data-lightbox-img]', dialog);
+    var countEl = $('[data-lightbox-count]', dialog);
+    var totalEl = $('[data-lightbox-total]', dialog);
+    var index = 0;
+    var opener = null;
+    if (totalEl) totalEl.textContent = String(links.length);
+
+    function show(i) {
+      index = (i + links.length) % links.length;
+      var link = links[index];
+      var thumb = $('img', link);
+      img.src = link.getAttribute('href').replace(/\.jpg$/, '.webp');
+      img.alt = thumb ? thumb.alt : '';
+      if (countEl) countEl.textContent = String(index + 1);
+      if (window.gsap && root.classList.contains('motion')) gsap.fromTo(img, { opacity: 0, scale: 0.96 }, { opacity: 1, scale: 1, duration: 0.7, ease: 'expo.out' });
+    }
+
+    links.forEach(function (link, i) {
+      link.addEventListener('click', function (e) {
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button > 0) return;
+        e.preventDefault();
+        opener = link;
+        show(i);
+        dialog.showModal();
+        root.classList.add('lightbox-open');
+        if (lenis) lenis.stop();
+      });
+    });
+    $('[data-lightbox-prev]', dialog).addEventListener('click', function () { show(index - 1); });
+    $('[data-lightbox-next]', dialog).addEventListener('click', function () { show(index + 1); });
+    $('[data-lightbox-close]', dialog).addEventListener('click', function () { dialog.close(); });
+    dialog.addEventListener('click', function (e) { if (e.target === dialog) dialog.close(); });
+    dialog.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowRight') { e.preventDefault(); show(index + 1); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); show(index - 1); }
+    });
+    dialog.addEventListener('close', function () {
+      root.classList.remove('lightbox-open');
+      if (lenis) lenis.start();
+      if (opener) opener.focus({ preventScroll: true });
+    });
+  }
+
   /* -------------------------------------------------------------- static mode exits here */
   if (!motion) {
     var onStaticScroll = function () { onScrollHeader(window.scrollY); };
@@ -728,7 +777,6 @@
         onUpdate: function (self) { show(Math.min(notes.length - 1, Math.floor(self.progress * notes.length * 0.999))); },
       });
       gsap.fromTo('.notes__word', { xPercent: 4 }, { xPercent: -10, ease: 'none', scrollTrigger: { trigger: pin, start: 'top top', end: function () { return '+=' + length(); }, scrub: true } });
-      gsap.fromTo('[data-notes-frame]', { rotate: -2.5 }, { rotate: 2.5, ease: 'none', scrollTrigger: { trigger: pin, start: 'top top', end: function () { return '+=' + length(); }, scrub: true } });
 
       return function () {
         section.classList.remove('is-pinned');
@@ -781,27 +829,22 @@
       });
     });
     activate(0, true);
-    gsap.fromTo('[data-occasion-frame]', { rotate: -2 }, { rotate: 2, ease: 'none', scrollTrigger: { trigger: section, start: 'top bottom', end: 'bottom top', scrub: true } });
   }
 
-  /* -------------------------------------------------------------- gallery rows */
+  /* -------------------------------------------------------------- gallery: tiles open like curtains */
   function initGallery() {
-    var section = $('[data-gallery]');
-    if (!section) return;
-    section.classList.add('is-marquee');
-    $$('[data-gallery-row]', section).forEach(function (row) {
-      var dir = parseFloat(row.getAttribute('data-gallery-row')) || -1;
-      var dist = function () { return Math.max(0, row.scrollWidth - window.innerWidth); };
-      gsap.fromTo(row,
-        { x: function () { return dir < 0 ? 0 : -dist(); } },
-        {
-          x: function () { return dir < 0 ? -dist() : 0; },
-          ease: 'none',
-          scrollTrigger: { trigger: section, start: 'top bottom', end: 'bottom top', scrub: 0.8, invalidateOnRefresh: true },
+    var items = $$('[data-gallery-item]');
+    if (!items.length) return;
+    ScrollTrigger.batch(items, {
+      start: 'top 92%',
+      once: true,
+      onEnter: function (batch) {
+        gsap.to(batch, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.3, stagger: 0.09, ease: 'expo.inOut', onComplete: function () { gsap.set(this.targets(), { clipPath: 'none' }); } });
+        batch.forEach(function (item, i) {
+          var pic = $('picture', item);
+          if (pic) gsap.fromTo(pic, { scale: 1.3 }, { scale: 1, duration: 2, delay: i * 0.09, ease: 'expo.out', clearProps: 'transform' });
         });
-    });
-    $$('.gallery__item img', section).forEach(function (img) {
-      gsap.fromTo(img, { scale: 1.12 }, { scale: 1, ease: 'none', scrollTrigger: { trigger: section, start: 'top bottom', end: 'center center', scrub: true } });
+      },
     });
   }
 
@@ -893,7 +936,6 @@
       });
     };
     add('.marquee__track', 'skewX', -1.4);
-    add('.gallery__row', 'skewX', -1);
     add('.step__media', 'skewX', -0.55);
     add('.statement__img', 'skewY', 0.6);
     lenis.on('scroll', function (e) {

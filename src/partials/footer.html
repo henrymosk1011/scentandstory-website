@@ -15,7 +15,11 @@
           <li><a href="/#inquire">Inquire</a></li>
         </ul>
       </nav>
-      {{social}}
+      <div class="site-footer__social">
+        <p class="eyebrow">Follow along</p>
+        {{social:labeled}}
+        <p class="site-footer__handle">{{site.socialHandle}}</p>
+      </div>
     </div>
 
     <div class="site-footer__logo" data-footer-logo>

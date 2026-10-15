@@ -226,26 +226,91 @@
     </section>
 
     <section class="gallery" id="gallery" aria-labelledby="gallery-title" data-gallery>
-      <div class="container gallery__head">
-        <p class="eyebrow" data-fade>Gallery</p>
-        <h2 id="gallery-title" class="h2" data-split>Moments <em>we’ve bottled</em></h2>
+      <div class="container">
+        <header class="gallery__head">
+          <div class="gallery__title">
+            <p class="eyebrow" data-fade>Gallery</p>
+            <h2 id="gallery-title" class="h2" data-split>Moments <em>we’ve bottled</em></h2>
+          </div>
+          <p class="gallery__lead" data-fade>Weddings, showers, soirées and brand nights. Here is a look at a few of the celebrations we have scented. Select a photo to see it larger, and find more on Instagram at <a href="{{site.social.instagram}}" target="_blank" rel="noopener">{{site.socialHandle}}<span class="visually-hidden"> (opens in a new tab)</span></a>.</p>
+        </header>
+        <ul class="gallery__grid" role="list">
+          <li class="gallery__item gallery__item--feature" data-gallery-item>
+            <a class="gallery__open" href="{{photo:pinkshawl}}" data-gallery-open>
+              {{pic:pinkshawl|A bride to be and her guest smile as they try a freshly blended scent.|(min-width: 56em) 46vw, 92vw|lazy}}
+              <span class="visually-hidden">View larger</span>
+              <span class="gallery__zoom" aria-hidden="true">+</span>
+            </a>
+          </li>
+          <li class="gallery__item gallery__item--tall gallery__item--arch" data-gallery-item>
+            <a class="gallery__open" href="{{photo:bridalbottles}}" data-gallery-open>
+              {{pic:bridalbottles|Bridal shower perfume bottles with custom illustrated labels and gold caps.|(min-width: 56em) 23vw, 46vw|lazy}}
+              <span class="visually-hidden">View larger</span>
+              <span class="gallery__zoom" aria-hidden="true">+</span>
+            </a>
+          </li>
+          <li class="gallery__item" data-gallery-item>
+            <a class="gallery__open" href="{{photo:redhair}}" data-gallery-open>
+              {{pic:redhair|A guest breathes in her blend at an outdoor perfume bar at golden hour.|(min-width: 56em) 23vw, 46vw|lazy}}
+              <span class="visually-hidden">View larger</span>
+              <span class="gallery__zoom" aria-hidden="true">+</span>
+            </a>
+          </li>
+          <li class="gallery__item" data-gallery-item>
+            <a class="gallery__open" href="{{photo:greenmenu}}" data-gallery-open>
+              {{pic:greenmenu|A framed sage green menu describing each scent on the bar.|(min-width: 56em) 23vw, 46vw|lazy}}
+              <span class="visually-hidden">View larger</span>
+              <span class="gallery__zoom" aria-hidden="true">+</span>
+            </a>
+          </li>
+          <li class="gallery__item" data-gallery-item>
+            <a class="gallery__open" href="{{photo:menuhands}}" data-gallery-open>
+              {{pic:menuhands|A guest fills a bottle from a dispenser beside a burgundy scent menu.|(min-width: 56em) 23vw, 46vw|lazy}}
+              <span class="visually-hidden">View larger</span>
+              <span class="gallery__zoom" aria-hidden="true">+</span>
+            </a>
+          </li>
+          <li class="gallery__item" data-gallery-item>
+            <a class="gallery__open" href="{{photo:handbottle}}" data-gallery-open>
+              {{pic:handbottle|A newly bottled custom perfume held up beneath a glowing dispenser.|(min-width: 56em) 23vw, 46vw|lazy}}
+              <span class="visually-hidden">View larger</span>
+              <span class="gallery__zoom" aria-hidden="true">+</span>
+            </a>
+          </li>
+          <li class="gallery__item gallery__item--wide" data-gallery-item>
+            <a class="gallery__open" href="{{photo:labeled}}" data-gallery-open>
+              {{pic:labeled|Perfume bottles with oval Scent and Story labels lined up on an acrylic riser.|(min-width: 56em) 46vw, 92vw|lazy}}
+              <span class="visually-hidden">View larger</span>
+              <span class="gallery__zoom" aria-hidden="true">+</span>
+            </a>
+          </li>
+          <li class="gallery__item gallery__item--wide" data-gallery-item>
+            <a class="gallery__open" href="{{photo:nightbar}}" data-gallery-open>
+              {{pic:nightbar|Guests gather around an illuminated perfume bar at an evening event.|(min-width: 56em) 46vw, 92vw|lazy}}
+              <span class="visually-hidden">View larger</span>
+              <span class="gallery__zoom" aria-hidden="true">+</span>
+            </a>
+          </li>
+          <li class="gallery__item gallery__item--wide gallery__item--cta" data-gallery-item>
+            <a class="gallery__cta" href="#inquire">
+              <span class="gallery__cta-kicker">Your celebration, next</span>
+              <span class="gallery__cta-title">Ready to bottle <em>your story?</em></span>
+              <span class="gallery__cta-arrow" aria-hidden="true">{{icon:arrow}}</span>
+            </a>
+          </li>
+        </ul>
       </div>
-      <div class="gallery__rows">
-        <div class="gallery__row" data-gallery-row="-1">
-          <figure class="gallery__item">{{pic:hero|Fragrance dispensers glowing in the afternoon light of a ballroom with arched windows.|(min-width: 48em) 24vw, 60vw|lazy}}</figure>
-          <figure class="gallery__item">{{pic:pinkshawl|A bride to be and her guest smile as they try a freshly blended scent.|(min-width: 48em) 34vw, 80vw|lazy}}</figure>
-          <figure class="gallery__item">{{pic:greenmenu|A sage green menu describing each scent on the bar.|(min-width: 48em) 24vw, 60vw|lazy}}</figure>
-          <figure class="gallery__item">{{pic:labeled|Labeled perfume bottles arranged on a clear acrylic riser.|(min-width: 48em) 34vw, 80vw|lazy}}</figure>
-          <figure class="gallery__item">{{pic:nightbar|A lively perfume bar at night with guests blending their own fragrances.|(min-width: 48em) 24vw, 60vw|lazy}}</figure>
+      <dialog class="lightbox" aria-label="Photo viewer" data-lightbox>
+        <div class="lightbox__inner">
+          <img class="lightbox__img" src="data:," alt="" data-lightbox-img>
+          <div class="lightbox__bar">
+            <button class="lightbox__btn" type="button" data-lightbox-prev>{{icon:arrowLeft}} Previous</button>
+            <p class="lightbox__count"><span data-lightbox-count>1</span> of <span data-lightbox-total>8</span></p>
+            <button class="lightbox__btn" type="button" data-lightbox-next>Next {{icon:arrow}}</button>
+          </div>
+          <button class="lightbox__close" type="button" data-lightbox-close>Close</button>
         </div>
-        <div class="gallery__row" data-gallery-row="1">
-          <figure class="gallery__item">{{pic:menuhands|A guest dispenses a scent into her bottle beside a burgundy menu.|(min-width: 48em) 24vw, 60vw|lazy}}</figure>
-          <figure class="gallery__item">{{pic:bridalbottles|Bridal shower perfume bottles with custom illustrated labels.|(min-width: 48em) 24vw, 60vw|lazy}}</figure>
-          <figure class="gallery__item">{{pic:redhair|A guest in black smells her blend at a white perfume bar outdoors.|(min-width: 48em) 24vw, 60vw|lazy}}</figure>
-          <figure class="gallery__item">{{pic:pinkbar|A pastel pink perfume bar with rows of gold capped bottles.|(min-width: 48em) 24vw, 60vw|lazy}}</figure>
-          <figure class="gallery__item">{{pic:handbottle|A newly bottled custom perfume held beneath a dispenser.|(min-width: 48em) 24vw, 60vw|lazy}}</figure>
-        </div>
-      </div>
+      </dialog>
     </section>
 
     <div class="marquee marquee--alt" aria-hidden="true">

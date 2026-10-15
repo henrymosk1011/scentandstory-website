@@ -19,9 +19,10 @@ export default {
   // Social profiles. Leave a value empty to hide that icon everywhere.
   // Example: 'https://www.instagram.com/yourhandle/'
   social: {
-    instagram: '',
-    tiktok: '',
+    instagram: 'https://www.instagram.com/scentandstory.co/',
+    tiktok: 'https://www.tiktok.com/@scentandstory.co',
   },
+  socialHandle: '@scentandstory.co',
 
   designer: {
     name: 'TENELEVENMEDIA',

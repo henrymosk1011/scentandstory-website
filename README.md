@@ -143,6 +143,6 @@ Built to WCAG 2.2 AA and audited with axe-core in every mode (0 violations):
 
 ## Credits and licenses
 
-* Fonts: Bodoni Moda and Jost, SIL Open Font License, self hosted.
+* Fonts: Noto Serif Display and Jost, SIL Open Font License, self hosted.
 * GSAP: GreenSock standard no charge license. Lenis: MIT.
 * Photography: Scent and Story events.
