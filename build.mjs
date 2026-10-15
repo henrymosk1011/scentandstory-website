@@ -53,7 +53,8 @@ if (BASE) writeFileSync(join(DIST, 'css/main.css'), withBase(read(join(STATIC, '
 const bootScript =
   "(function(d,w){var h=d.documentElement;h.classList.remove('no-js');h.classList.add('js');" +
   "var r=w.matchMedia&&w.matchMedia('(prefers-reduced-motion: reduce)').matches;" +
-  "if(!r){h.classList.add('motion');w.setTimeout(function(){if(!w.__ssReady){h.classList.remove('motion')}},4000)}})(document,window);";
+  "if(!r){h.classList.add('motion');try{if(!w.sessionStorage.getItem('ss-intro')){h.classList.add('intro-on');w.sessionStorage.setItem('ss-intro','1')}}catch(e){}" +
+  "w.setTimeout(function(){if(!w.__ssReady){h.classList.remove('motion','intro-on')}},4000)}})(document,window);";
 const bootHash = createHash('sha256').update(bootScript).digest('base64');
 
 // ---------------------------------------------------------------- helpers
@@ -140,7 +141,7 @@ const renderers = {
     `        <ul class="quotes" role="list">\n` +
     testimonials
       .map(
-        (t) => `          <li class="quote" data-fade>
+        (t) => `          <li class="quote" data-quote>
             <figure>
               <blockquote class="quote__text"><p>“${esc(t.quote)}”</p></blockquote>
               <figcaption class="quote__cite"><span class="quote__name">${esc(t.name)}</span> <span class="quote__role">${esc(t.role)}</span></figcaption>
