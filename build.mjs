@@ -121,7 +121,7 @@ const renderers = {
               </dl>
               <a class="btn ${p.theme === 'wine' ? 'btn--light' : ''}" href="#inquire" data-experience="${esc(p.name)}" data-magnetic><span class="btn__label">Inquire about ${esc(p.name)}</span></a>
             </div>
-            <figure class="pkg__media arch">${picture(p.image, p.alt, '(min-width: 64em) 36vw, 90vw', 'lazy')}</figure>
+            <figure class="pkg__media rounded">${picture(p.image, p.alt, '(min-width: 64em) 36vw, 90vw', 'lazy')}</figure>
           </article>`,
       )
       .join('\n'),

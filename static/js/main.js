@@ -425,10 +425,10 @@
         },
       });
     }
-    var arch = $('[data-hero-arch] picture');
-    if (arch) {
-      tl.fromTo(arch, { clipPath: 'inset(100% 0% 0% 0%)' }, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.8, ease: 'expo.inOut' }, 0);
-      tl.from($('img', arch), { scale: 1.35, duration: 2.4, ease: 'expo.out' }, 0.2);
+    var frame = $('[data-hero-frame] picture');
+    if (frame) {
+      tl.fromTo(frame, { clipPath: 'inset(100% 0% 0% 0%)' }, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.8, ease: 'expo.inOut' }, 0);
+      tl.from($('img', frame), { scale: 1.35, duration: 2.4, ease: 'expo.out' }, 0.2);
     }
     tl.to('[data-hero-fade]', { opacity: 1, y: 0, duration: 1.4, stagger: 0.1 }, 0.55);
     tl.fromTo('.hero__eyebrow', { letterSpacing: '0.7em' }, { letterSpacing: '0.28em', duration: 2, ease: 'expo.out' }, 0.55);
@@ -440,7 +440,7 @@
   function initHeroScroll() {
     var hero = $('.hero');
     if (!hero) return;
-    var arch = $('[data-hero-arch]');
+    var frame = $('[data-hero-frame]');
     var media = $('.hero__media');
     var copy = $('.hero__copy');
     var revealLines = $$('[data-hero-reveal] .hero__reveal-line > span');
@@ -483,11 +483,11 @@
       var geo = function () {
         var vw = hero.clientWidth;
         var vh = window.innerHeight;
-        var w = arch.offsetWidth;
-        var h = arch.offsetHeight;
-        var left = media.offsetLeft + arch.offsetLeft;
-        var top = media.offsetTop + arch.offsetTop;
-        return { dx: vw / 2 - (left + w / 2), dy: vh / 2 - (top + h / 2), s: Math.max(vw / w, vh / h) * 1.04, r: w / 2 };
+        var w = frame.offsetWidth;
+        var h = frame.offsetHeight;
+        var left = media.offsetLeft + frame.offsetLeft;
+        var top = media.offsetTop + frame.offsetTop;
+        return { dx: vw / 2 - (left + w / 2), dy: vh / 2 - (top + h / 2), s: Math.max(vw / w, vh / h) * 1.02 };
       };
       var tl = gsap.timeline({
         scrollTrigger: {
@@ -501,10 +501,10 @@
           onUpdate: function (self) { reveal(self.progress > 0.62); },
         },
       });
-      tl.fromTo(arch,
-        { x: 0, y: 0, scale: 1, borderTopLeftRadius: function () { return geo().r; }, borderTopRightRadius: function () { return geo().r; } },
-        { x: function () { return geo().dx; }, y: function () { return geo().dy; }, scale: function () { return geo().s; }, borderTopLeftRadius: 0, borderTopRightRadius: 0, borderBottomLeftRadius: 0, borderBottomRightRadius: 0, ease: 'power2.inOut', duration: 1 }, 0)
-        .to('[data-hero-arch] picture', { scale: 1.1, ease: 'none', duration: 1.3 }, 0)
+      tl.fromTo(frame,
+        { x: 0, y: 0, scale: 1 },
+        { x: function () { return geo().dx; }, y: function () { return geo().dy; }, scale: function () { return geo().s; }, borderRadius: 0, ease: 'power2.inOut', duration: 1 }, 0)
+        .to('[data-hero-frame] picture', { scale: 1.1, ease: 'none', duration: 1.3 }, 0)
         .to('[data-hero-shade]', { opacity: 1, ease: 'power1.in', duration: 0.6 }, 0.35)
         .to('[data-hero-badge]', { scale: 0, opacity: 0, duration: 0.3, ease: 'power2.in' }, 0)
         .to(copy, { y: -90, ease: 'none', duration: 1 }, 0)
@@ -611,51 +611,63 @@
     if (!section) return;
     var pin = $('[data-process-pin]', section);
     var track = $('[data-process-track]', section);
-    section.classList.add('is-horizontal');
+
     gsap.fromTo(section, { clipPath: 'inset(0% 4% 0% 4% round 2.5rem)' }, {
       clipPath: 'inset(0% 0% 0% 0% round 0rem)',
       ease: 'none',
       scrollTrigger: { trigger: section, start: 'top bottom', end: 'top top', scrub: true },
     });
 
-    var distance = function () { return Math.max(0, track.scrollWidth - window.innerWidth); };
-    var tween = gsap.to(track, {
-      x: function () { return -distance(); },
-      ease: 'none',
-      scrollTrigger: {
-        trigger: pin,
-        start: 'top top',
-        end: function () { return '+=' + distance(); },
-        pin: true,
-        scrub: 0.8,
-        anticipatePin: 1,
-        invalidateOnRefresh: true,
-      },
+    // Pin and scroll sideways only when the window is tall enough for the
+    // steps to fit; shorter windows (or heavy browser zoom) get the stacked grid.
+    var mm = gsap.matchMedia();
+    mm.add('(min-height: 34em)', function () {
+      section.classList.add('is-horizontal');
+      var distance = function () { return Math.max(0, track.scrollWidth - window.innerWidth); };
+      var tween = gsap.to(track, {
+        x: function () { return -distance(); },
+        ease: 'none',
+        scrollTrigger: {
+          trigger: pin,
+          start: 'top top',
+          end: function () { return '+=' + distance(); },
+          pin: true,
+          scrub: 0.8,
+          anticipatePin: 1,
+          invalidateOnRefresh: true,
+        },
+      });
+
+      $$('.step', track).forEach(function (step) {
+        var media = $('.step__media', step);
+        var img = $('img', step);
+        gsap.fromTo(media, { clipPath: 'inset(18% 10% 18% 10%)' }, {
+          clipPath: 'inset(0% 0% 0% 0%)',
+          ease: 'none',
+          scrollTrigger: { trigger: step, containerAnimation: tween, start: 'left 100%', end: 'left 55%', scrub: true },
+        });
+        if (img) {
+          gsap.fromTo(img, { xPercent: -6 }, {
+            xPercent: 6,
+            ease: 'none',
+            scrollTrigger: { trigger: step, containerAnimation: tween, start: 'left right', end: 'right left', scrub: true },
+          });
+        }
+        gsap.from($('.step__body', step), {
+          y: 40,
+          opacity: 0,
+          ease: 'none',
+          scrollTrigger: { trigger: step, containerAnimation: tween, start: 'left 95%', end: 'left 60%', scrub: true },
+        });
+      });
+      gsap.to($$('[data-fade]', track), { opacity: 1, y: 0, stagger: 0.1, scrollTrigger: { trigger: section, start: 'top 75%', once: true } });
+
+      return function () { section.classList.remove('is-horizontal'); };
     });
 
-    $$('.step', track).forEach(function (step) {
-      var media = $('.step__media', step);
-      var img = $('img', step);
-      gsap.fromTo(media, { clipPath: 'inset(18% 10% 18% 10%)' }, {
-        clipPath: 'inset(0% 0% 0% 0%)',
-        ease: 'none',
-        scrollTrigger: { trigger: step, containerAnimation: tween, start: 'left 100%', end: 'left 55%', scrub: true },
-      });
-      if (img) {
-        gsap.fromTo(img, { xPercent: -6 }, {
-          xPercent: 6,
-          ease: 'none',
-          scrollTrigger: { trigger: step, containerAnimation: tween, start: 'left right', end: 'right left', scrub: true },
-        });
-      }
-      gsap.from($('.step__body', step), {
-        y: 40,
-        opacity: 0,
-        ease: 'none',
-        scrollTrigger: { trigger: step, containerAnimation: tween, start: 'left 95%', end: 'left 60%', scrub: true },
-      });
+    mm.add('(max-height: 33.99em)', function () {
+      gsap.to($$('[data-fade]', track), { opacity: 1, y: 0, stagger: 0.1, scrollTrigger: { trigger: section, start: 'top 80%', once: true } });
     });
-    gsap.to($$('[data-fade]', track), { opacity: 1, y: 0, stagger: 0.1, scrollTrigger: { trigger: section, start: 'top 75%', once: true } });
   }
 
   /* -------------------------------------------------------------- stacked packages */
@@ -786,7 +798,7 @@
     });
   }
 
-  /* -------------------------------------------------------------- occasions: sticky arch follows the active item */
+  /* -------------------------------------------------------------- occasions: sticky frame follows the active item */
   function initOccasions() {
     var section = $('[data-occasions]');
     if (!section) return;
