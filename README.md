@@ -1,7 +1,7 @@
 # Scent and Story Perfume Bar
 
 Website for **Scent and Story**, a luxury perfume blending bar in Los Angeles.
-Live at [scentandstory.co](https://scentandstory.co) once DNS is switched.
+Live at [scentandstory.co](https://scentandstory.co).
 
 Designed by [TENELEVENMEDIA](https://tenelevenmedia.com).
 
@@ -52,42 +52,33 @@ Every push to `main` or a `claude/*` branch publishes a preview to
 
 ## Deploying
 
-### Already set up in Cloudflare (account: henrymm@gmail.com)
+Every push to the production branch (currently `claude/fervent-volta-lzi6ww`) deploys automatically:
+Cloudflare Workers Builds runs `npx wrangler deploy`, which runs `node build.mjs` and uploads `dist/`.
+Build history is in the Cloudflare dashboard under **Workers & Pages**, `scentandstory`, **Deployments**.
 
-* Zone `scentandstory.co` added, waiting on the nameserver switch. Existing records were imported:
-  the five Google Workspace MX records, the Google Search Console TXT, DMARC, and SPF (flattened from
-  GoDaddy's `_spfm` include to `v=spf1 include:_spf.google.com ~all`). `pay` and `_domainconnect` are DNS only.
-* Worker `scentandstory` created and attached to `scentandstory.co` as a custom domain (certificate issued
-  by Cloudflare). The old GoDaddy website A records (`13.248.243.5`, `76.223.105.230`) were removed.
-  Until the first GitHub build runs, the Worker serves a simple "almost ready" holding page.
-* `www.scentandstory.co` is a proxied CNAME with a redirect rule sending it to `https://scentandstory.co`.
+### How it is set up (Cloudflare account: henrymm@gmail.com)
+
+* DNS for `scentandstory.co` is on Cloudflare (`kira` and `viddy` nameservers, set at GoDaddy, the registrar).
+  Google Workspace MX, SPF (`v=spf1 include:_spf.google.com ~all`), DMARC and the Google Search Console TXT
+  were carried over from GoDaddy. `pay` and `_domainconnect` are DNS only.
+* Worker `scentandstory` serves the apex domain as a custom domain. `www` is a proxied CNAME that a redirect
+  rule sends to `https://scentandstory.co`.
 * Zone settings: SSL Full (strict), Always Use HTTPS, Automatic HTTPS Rewrites, minimum TLS 1.2, TLS 1.3,
-  Brotli, HTTP/3 on; Rocket Loader and Email Obfuscation off (both inject scripts).
-* Worker secret `RESEND_API_KEY` set (a Resend key limited to sending from `scentandstory.co`).
-* Resend domain `scentandstory.co` added with its DKIM, SPF and return path records already in the zone.
+  Brotli, HTTP/3 on; Rocket Loader and Email Obfuscation off (both inject scripts and would break the CSP).
+* The inquiry form sends through Resend from `website@scentandstory.co` to `info@scentandstory.co`, with the
+  visitor as `reply_to`. The domain is verified in Resend (DKIM on `resend._domainkey`, SPF and return path on
+  `send` and `rsend`). Receiving is off on purpose: inbound mail stays with Google Workspace.
+* Worker secret `RESEND_API_KEY` holds a Resend key limited to sending from `scentandstory.co`.
 
-### Remaining steps
+### Maintenance
 
-1. **Connect GitHub to the Worker.** Cloudflare dashboard, **Workers & Pages**, `scentandstory`,
-   **Settings**, **Builds**, **Connect**. Pick `henrymosk1011/scentandstory-website` and the production
-   branch. Leave the build command empty and keep the deploy command `npx wrangler deploy`
-   (Wrangler runs `node build.mjs` itself). Save, then run the first build. When it finishes,
-   `https://scentandstory.henrymm.workers.dev` shows the full site.
-2. **Switch nameservers at GoDaddy.** If DNSSEC is on for the domain, turn it off first. Then
-   **My Products**, `scentandstory.co`, **DNS**, **Nameservers**, **Change nameservers**,
-   **I'll use my own nameservers**, and enter `kira.ns.cloudflare.com` and `viddy.ns.cloudflare.com`.
-3. **Wait for Cloudflare to mark the zone Active** (usually under an hour, occasionally up to 24 hours).
-   Then check `https://scentandstory.co`, the `www` redirect, and send a test email to
-   `info@scentandstory.co`.
-4. **Verify the domain in Resend** (Domains, `scentandstory.co`, Verify), then send a test inquiry
-   through the site's form.
-
-To rotate the email key later: create a new sending only key in Resend for `scentandstory.co`, then
-`npx wrangler secret put RESEND_API_KEY` (or Worker, Settings, Variables and Secrets), and delete the old key.
-
-Recommended while you are in there: Google Workspace has no DKIM key published for this domain
-(`google._domainkey` does not exist). In the Google Admin console, **Apps**, **Google Workspace**,
-**Gmail**, **Authenticate email**, generate a key and add the TXT record in Cloudflare.
+* **Rotate the email key:** create a new sending only key in Resend for `scentandstory.co`, save it with
+  `npx wrangler secret put RESEND_API_KEY` (or Worker, **Settings**, **Variables and Secrets**), then delete the old key.
+* **Google Workspace DKIM:** if `google._domainkey` does not exist yet, generate it in the Google Admin console
+  (**Apps**, **Google Workspace**, **Gmail**, **Authenticate email**), add the TXT record in Cloudflare, then
+  click **Start authentication**. DMARC is `p=quarantine`, so mail from Gmail needs DKIM to survive forwarding.
+* **Switching the production branch:** after merging into `main`, change the branch under Worker,
+  **Settings**, **Builds**.
 
 ### Search and analytics
 
