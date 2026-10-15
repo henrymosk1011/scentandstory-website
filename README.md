@@ -40,7 +40,7 @@ npm run dev                      # http://localhost:8787, rebuilds on save
 
 ## Preview on GitHub Pages
 
-Every push to `main` or a `claude/*` branch publishes a preview to
+Every push to a `claude/*` work branch publishes a staging preview to
 **https://henrymosk1011.github.io/scentandstory-website/** through
 `.github/workflows/pages.yml`.
 

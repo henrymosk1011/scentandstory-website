@@ -1,11 +1,12 @@
-# Publishes a preview of the site to GitHub Pages on every push.
+# Publishes a staging preview of work branches to GitHub Pages. Production (main) is
+# deployed by Cloudflare Workers Builds, so main does not run this workflow.
 # One time setup: repo Settings, Pages, Build and deployment, Source: GitHub Actions.
 # The preview is noindex and the inquiry form only works on the Cloudflare deployment.
 name: Preview on GitHub Pages
 
 on:
   push:
-    branches: [main, "claude/**"]
+    branches: ["claude/**"]
   workflow_dispatch:
 
 permissions:
