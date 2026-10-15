@@ -52,63 +52,44 @@ Every push to `main` or a `claude/*` branch publishes a preview to
 
 ## Deploying
 
-### 1. Cloudflare Worker from GitHub
+### Already set up in Cloudflare (account: henrymm@gmail.com)
 
-1. Cloudflare dashboard, **Workers & Pages**, **Create**, **Import a repository**.
-2. Pick `henrymosk1011/scentandstory-website` and the production branch (`main`).
-3. Leave the build command empty. Deploy command: `npx wrangler deploy` (the default).
-   Wrangler runs `node build.mjs` automatically before each deploy.
-4. Every push to `main` now deploys. Pull requests get preview URLs.
+* Zone `scentandstory.co` added, waiting on the nameserver switch. Existing records were imported:
+  the five Google Workspace MX records, the Google Search Console TXT, DMARC, and SPF (flattened from
+  GoDaddy's `_spfm` include to `v=spf1 include:_spf.google.com ~all`). `pay` and `_domainconnect` are DNS only.
+* Worker `scentandstory` created and attached to `scentandstory.co` as a custom domain (certificate issued
+  by Cloudflare). The old GoDaddy website A records (`13.248.243.5`, `76.223.105.230`) were removed.
+  Until the first GitHub build runs, the Worker serves a simple "almost ready" holding page.
+* `www.scentandstory.co` is a proxied CNAME with a redirect rule sending it to `https://scentandstory.co`.
+* Zone settings: SSL Full (strict), Always Use HTTPS, Automatic HTTPS Rewrites, minimum TLS 1.2, TLS 1.3,
+  Brotli, HTTP/3 on; Rocket Loader and Email Obfuscation off (both inject scripts).
+* Worker secret `RESEND_API_KEY` set (a Resend key limited to sending from `scentandstory.co`).
+* Resend domain `scentandstory.co` added with its DKIM, SPF and return path records already in the zone.
 
-### 2. Resend API key (secret)
+### Remaining steps
 
-1. In Resend, create an API key with **Sending access** limited to `scentandstory.co`.
-2. Add it to the Worker: dashboard, the `scentandstory` Worker, **Settings**, **Variables and Secrets**,
-   add a **Secret** named `RESEND_API_KEY`. Or from a terminal: `npx wrangler secret put RESEND_API_KEY`.
+1. **Connect GitHub to the Worker.** Cloudflare dashboard, **Workers & Pages**, `scentandstory`,
+   **Settings**, **Builds**, **Connect**. Pick `henrymosk1011/scentandstory-website` and the production
+   branch. Leave the build command empty and keep the deploy command `npx wrangler deploy`
+   (Wrangler runs `node build.mjs` itself). Save, then run the first build. When it finishes,
+   `https://scentandstory.henrymm.workers.dev` shows the full site.
+2. **Switch nameservers at GoDaddy.** If DNSSEC is on for the domain, turn it off first. Then
+   **My Products**, `scentandstory.co`, **DNS**, **Nameservers**, **Change nameservers**,
+   **I'll use my own nameservers**, and enter `kira.ns.cloudflare.com` and `viddy.ns.cloudflare.com`.
+3. **Wait for Cloudflare to mark the zone Active** (usually under an hour, occasionally up to 24 hours).
+   Then check `https://scentandstory.co`, the `www` redirect, and send a test email to
+   `info@scentandstory.co`.
+4. **Verify the domain in Resend** (Domains, `scentandstory.co`, Verify), then send a test inquiry
+   through the site's form.
 
-The sender and recipient live in `wrangler.jsonc` under `vars`
-(`CONTACT_FROM`, `CONTACT_TO`). Several recipients can be comma separated.
-
-### 3. Domain: GoDaddy to Cloudflare
-
-The `scentandstory.co` zone has been added to the Cloudflare account (status: pending) and its
-existing records were imported from GoDaddy:
-
-* **Email is Google Workspace.** All five Google MX records were imported.
-* The SPF record at GoDaddy pointed to a GoDaddy managed include
-  (`dc-aa8e722993._spfm.scentandstory.co`) that would stop resolving after the move. It has been
-  replaced in Cloudflare with its actual value, `v=spf1 include:_spf.google.com ~all`.
-* The existing DMARC record and the Google Search Console verification TXT were kept.
-* `pay` (GoDaddy payment links) and `_domainconnect` are set to DNS only.
-
-Steps:
-
-1. In GoDaddy, **My Products**, the domain, **DNS**, **Nameservers**, **Change**, **I'll use my own
-   nameservers**, and enter:
-   * `kira.ns.cloudflare.com`
-   * `viddy.ns.cloudflare.com`
-2. Wait for the zone to show **Active** (minutes to a few hours). Send a test email to
-   `info@scentandstory.co` to confirm mail still arrives.
-3. Delete the two old apex `A` records (`13.248.243.5`, `76.223.105.230`) and the `www` CNAME.
-4. Attach the domain to the Worker: either uncomment the `routes` block in `wrangler.jsonc` and push,
-   or in the dashboard go to the Worker, **Settings**, **Domains & Routes**, **Add**, **Custom domain**,
-   and add both `scentandstory.co` and `www.scentandstory.co`.
-5. Redirect `www` to the apex: **Rules**, **Redirect Rules**, template **Redirect from WWW to root**.
-6. Recommended zone settings: SSL/TLS **Full (strict)**, **Always Use HTTPS** on, **Rocket Loader** off
-   (it rewrites scripts and fights the Content Security Policy).
-
-### 4. Resend domain verification
-
-`scentandstory.co` has been added to Resend, and its records were created in the Cloudflare zone
-ahead of time (`resend._domainkey` TXT, `send` MX and TXT, `rsend` CNAME). After the nameserver
-switch, open the domain in Resend and click **Verify**. Mail from `website@scentandstory.co` will then
-pass DKIM, SPF and the domain's existing DMARC policy.
+To rotate the email key later: create a new sending only key in Resend for `scentandstory.co`, then
+`npx wrangler secret put RESEND_API_KEY` (or Worker, Settings, Variables and Secrets), and delete the old key.
 
 Recommended while you are in there: Google Workspace has no DKIM key published for this domain
 (`google._domainkey` does not exist). In the Google Admin console, **Apps**, **Google Workspace**,
 **Gmail**, **Authenticate email**, generate a key and add the TXT record in Cloudflare.
 
-### 5. Search and analytics
+### Search and analytics
 
 * Google Search Console: add the domain property, then submit `https://scentandstory.co/sitemap.xml`.
 * When adding analytics, allow its domains in the Content Security Policy in `build.mjs`

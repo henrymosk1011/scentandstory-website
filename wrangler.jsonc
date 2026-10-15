@@ -37,13 +37,11 @@
 
   "observability": { "enabled": true },
 
-  // Uncomment once scentandstory.co is an active zone in your Cloudflare account
-  // (nameservers switched at GoDaddy). Cloudflare then creates the DNS records
-  // and certificates for both hostnames automatically.
-  // "routes": [
-  //   { "pattern": "scentandstory.co", "custom_domain": true },
-  //   { "pattern": "www.scentandstory.co", "custom_domain": true }
-  // ],
+  // The apex domain is served by this Worker. www.scentandstory.co is a proxied
+  // CNAME that a Cloudflare redirect rule sends to https://scentandstory.co.
+  "routes": [
+    { "pattern": "scentandstory.co", "custom_domain": true }
+  ],
 
   "workers_dev": true,
   "preview_urls": true
