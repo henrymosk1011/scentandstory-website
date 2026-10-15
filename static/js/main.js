@@ -445,7 +445,7 @@
     var copy = $('.hero__copy');
     var revealLines = $$('[data-hero-reveal] .hero__reveal-line > span');
 
-    gsap.to('[data-hero-monogram]', { yPercent: 18, rotate: -4, ease: 'none', scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom top', scrub: true } });
+    gsap.to('[data-hero-monogram]', { yPercent: 18, ease: 'none', scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom top', scrub: true } });
     gsap.to('[data-hero-badge]', { rotate: 220, ease: 'none', scrollTrigger: { trigger: doc.body, start: 'top top', end: 'bottom bottom', scrub: 0.6 } });
 
     // Pointer depth: the monogram and badge drift against the cursor.
@@ -580,10 +580,16 @@
     var el = $('[data-words]');
     if (!el) return;
     var split = SplitText.create(el, { type: 'words', wordsClass: 'word', aria: 'none', tag: 'span' });
-    [['.statement__img--a', -8], ['.statement__img--b', 7]].forEach(function (pair) {
-      var fig = $(pair[0]);
+    // Each photo grows into place while the picture drifts vertically inside its frame.
+    [['.statement__img--a', 0.82, -1], ['.statement__img--b', 0.88, 1]].forEach(function (set) {
+      var fig = $(set[0]);
       if (!fig) return;
-      gsap.fromTo($('.statement__frame', fig), { rotate: pair[1] }, { rotate: 0, ease: 'none', scrollTrigger: { trigger: fig, start: 'top bottom', end: 'center 45%', scrub: true } });
+      var frame = $('.statement__frame', fig);
+      var pic = $('picture', frame);
+      gsap.fromTo(frame, { scale: set[1] }, { scale: 1, ease: 'none', scrollTrigger: { trigger: fig, start: 'top bottom', end: 'center 45%', scrub: true } });
+      if (pic) {
+        gsap.fromTo(pic, { scale: 1.18, yPercent: 7 * set[2] }, { scale: 1.18, yPercent: -7 * set[2], ease: 'none', scrollTrigger: { trigger: fig, start: 'top bottom', end: 'bottom top', scrub: true } });
+      }
     });
     gsap.fromTo(split.words, { opacity: 0.14 }, {
       opacity: 1,
@@ -696,8 +702,6 @@
           if (next) {
             gsap.to(card, {
               scale: 0.9 + i * 0.02,
-              rotationX: -7,
-              transformPerspective: 1600,
               transformOrigin: '50% 0%',
               '--shade': 0.16,
               ease: 'none',
@@ -937,19 +941,20 @@
     }
   }
 
-  /* -------------------------------------------------------------- velocity: images and type lean into fast scrolling */
+  /* -------------------------------------------------------------- velocity: type leans and photos swell with fast scrolling */
   function initVelocity() {
     if (!lenis) return;
     var setters = [];
-    var add = function (sel, prop, factor) {
+    var add = function (sel, prop, map) {
       $$(sel).forEach(function (el) {
         var set = gsap.quickTo(el, prop, { duration: 0.7, ease: 'power3.out' });
-        setters.push(function (v) { set(v * factor); });
+        setters.push(function (v) { set(map(v)); });
       });
     };
-    add('.marquee__track', 'skewX', -1.4);
-    add('.step__media', 'skewX', -0.55);
-    add('.statement__img', 'skewY', 0.6);
+    add('.marquee__track', 'skewX', function (v) { return v * -1.4; });
+    var swell = function (v) { return 1 + Math.abs(v) * 0.012; };
+    add('.step__media picture', 'scaleX', swell);
+    add('.step__media picture', 'scaleY', swell);
     lenis.on('scroll', function (e) {
       var v = gsap.utils.clamp(-6, 6, e.velocity * 0.14);
       setters.forEach(function (set) { set(v); });
