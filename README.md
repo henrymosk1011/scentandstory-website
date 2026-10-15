@@ -52,8 +52,8 @@ Every push to `main` or a `claude/*` branch publishes a preview to
 
 ## Deploying
 
-Every push to the production branch (currently `claude/fervent-volta-lzi6ww`) deploys automatically:
-Cloudflare Workers Builds runs `npx wrangler deploy`, which runs `node build.mjs` and uploads `dist/`.
+Every push to `main` deploys automatically: Cloudflare Workers Builds runs `npx wrangler deploy`,
+which runs `node build.mjs` and uploads `dist/`. Work on another branch and merge into `main` to publish.
 Build history is in the Cloudflare dashboard under **Workers & Pages**, `scentandstory`, **Deployments**.
 
 ### How it is set up (Cloudflare account: henrymm@gmail.com)
@@ -61,6 +61,8 @@ Build history is in the Cloudflare dashboard under **Workers & Pages**, `scentan
 * DNS for `scentandstory.co` is on Cloudflare (`kira` and `viddy` nameservers, set at GoDaddy, the registrar).
   Google Workspace MX, SPF (`v=spf1 include:_spf.google.com ~all`), DMARC and the Google Search Console TXT
   were carried over from GoDaddy. `pay` and `_domainconnect` are DNS only.
+* DNSSEC is signed by Cloudflare. Its DS record (key tag 2371, algorithm 13, digest type 2) is entered at GoDaddy.
+* DMARC aggregate reports go to Cloudflare (**Email**, **DMARC Management**) instead of GoDaddy.
 * Worker `scentandstory` serves the apex domain as a custom domain. `www` is a proxied CNAME that a redirect
   rule sends to `https://scentandstory.co`.
 * Zone settings: SSL Full (strict), Always Use HTTPS, Automatic HTTPS Rewrites, minimum TLS 1.2, TLS 1.3,
@@ -77,8 +79,7 @@ Build history is in the Cloudflare dashboard under **Workers & Pages**, `scentan
 * **Google Workspace DKIM:** if `google._domainkey` does not exist yet, generate it in the Google Admin console
   (**Apps**, **Google Workspace**, **Gmail**, **Authenticate email**), add the TXT record in Cloudflare, then
   click **Start authentication**. DMARC is `p=quarantine`, so mail from Gmail needs DKIM to survive forwarding.
-* **Switching the production branch:** after merging into `main`, change the branch under Worker,
-  **Settings**, **Builds**.
+* **Production branch:** set under Worker, **Settings**, **Builds**. It is `main`.
 
 ### Search and analytics
 
