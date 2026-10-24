@@ -23,7 +23,10 @@
   "vars": {
     "CONTACT_TO": "info@scentandstory.co",
     "CONTACT_FROM": "Scent and Story Website <website@scentandstory.co>",
-    "ALLOWED_ORIGINS": "https://scentandstory.co,https://www.scentandstory.co"
+    "ALLOWED_ORIGINS": "https://scentandstory.co,https://www.scentandstory.co",
+    // Alias of the published Resend template sent to the visitor as a confirmation.
+    // Edit the email in Resend under Templates. Set to "" to stop sending it.
+    "AUTOREPLY_TEMPLATE": "inquiry-auto-reply"
   },
 
   // Five inquiries per minute per visitor IP, per Cloudflare location.

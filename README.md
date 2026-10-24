@@ -12,7 +12,7 @@ Designed by [TENELEVENMEDIA](https://tenelevenmedia.com).
 | Static HTML, CSS, JS | No framework. `build.mjs` (zero dependencies) assembles pages from `src/` into `dist/`. |
 | GSAP 3.15 + ScrollTrigger + SplitText, Lenis 1.3 | Smooth scroll, pinned horizontal scroll, split text reveals, parallax. Vendored in `static/vendor/`. |
 | Cloudflare Workers + Static Assets | Serves `dist/` from the edge. A tiny Worker (`src/worker.js`) only handles `/api/contact`. |
-| Resend | Delivers inquiry form submissions to `info@scentandstory.co`. |
+| Resend | Delivers inquiry form submissions to `info@scentandstory.co` and sends the visitor a confirmation from a Resend template. |
 | Cloudflare Turnstile | Spam check on the inquiry form. Invisible for most visitors, a checkbox only when Cloudflare is unsure. |
 
 ## Project layout
@@ -75,6 +75,11 @@ Build history is in the Cloudflare dashboard under **Workers & Pages**, `scentan
   visitor as `reply_to`. The domain is verified in Resend (DKIM on `resend._domainkey`, SPF and return path on
   `send` and `rsend`). Receiving is off on purpose: inbound mail stays with Google Workspace.
 * Worker secret `RESEND_API_KEY` holds a Resend key limited to sending from `scentandstory.co`.
+* After each inquiry is delivered, the Worker sends the visitor a confirmation using the published Resend
+  template `inquiry-auto-reply` (Resend, **Templates**, "Scent and Story inquiry auto-reply"). It comes from
+  `info@scentandstory.co` with replies going to the same inbox. Sender, subject and copy live in the template:
+  edit it in Resend and click **Publish**, no deploy needed. `NAME` and `INQUIRY` are filled in by the Worker.
+  Set `AUTOREPLY_TEMPLATE` in `wrangler.jsonc` to `""` to turn it off.
 * Turnstile widget `scentandstory-inquiry-form` (Managed mode, hostnames `scentandstory.co` and
   `henrymm.workers.dev`, subdomains included). Its site key is `turnstileSiteKey` in `src/config.mjs`,
   its secret is the Worker secret `TURNSTILE_SECRET_KEY`. Solve rates are under **Turnstile** in the dashboard.
@@ -127,6 +132,9 @@ Built to WCAG 2.2 AA and audited with axe-core in every mode (0 violations):
   word list for known spam signatures, per IP rate limit (5 per minute), server side validation (including
   no past event dates), a Turnstile token checked with Cloudflare's siteverify API (fails closed if the
   secret is missing), HTML escaped email body, and the Resend and Turnstile keys kept as Worker secrets.
+* Auto reply: never echoes the visitor's message, only a first name that passes a letters only check
+  and the allowlisted experience and date. An idempotency key allows one confirmation per address
+  per 24 hours, so the form cannot be used to flood someone else's inbox.
 
 ## Credits and licenses
 

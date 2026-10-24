@@ -4,7 +4,7 @@
 //
 // Required secrets:  RESEND_API_KEY        (npx wrangler secret put RESEND_API_KEY)
 //                    TURNSTILE_SECRET_KEY  (only while src/config.mjs has a turnstileSiteKey)
-// Plain variables:   CONTACT_TO, CONTACT_FROM, ALLOWED_ORIGINS (wrangler.jsonc "vars")
+// Plain variables:   CONTACT_TO, CONTACT_FROM, ALLOWED_ORIGINS, AUTOREPLY_TEMPLATE (wrangler.jsonc "vars")
 
 import site from './config.mjs';
 
@@ -45,12 +45,12 @@ const API_HEADERS = {
 };
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
     if (url.pathname === '/api/contact') {
       try {
-        return await handleContact(request, env, url);
+        return await handleContact(request, env, url, ctx);
       } catch (err) {
         console.error('contact: unexpected error', err && err.message);
         return reply(request, 500, { ok: false, message: genericFailure(env) });
@@ -65,7 +65,7 @@ export default {
   },
 };
 
-async function handleContact(request, env, url) {
+async function handleContact(request, env, url, ctx) {
   if (request.method !== 'POST') {
     return json(405, { ok: false, message: 'Method not allowed.' }, { Allow: 'POST' });
   }
@@ -163,7 +163,44 @@ async function handleContact(request, env, url) {
     return reply(request, 502, { ok: false, message: genericFailure(env) });
   }
 
+  // The confirmation to the visitor finishes after the response, so a slow or
+  // failed auto reply never holds up or fails the inquiry itself.
+  if (env.AUTOREPLY_TEMPLATE) ctx.waitUntil(sendAutoReply(env, data));
+
   return reply(request, 200, { ok: true });
+}
+
+// Confirmation to the visitor from a published Resend template. Sender, subject,
+// reply to and copy all live in the template, so they can be edited in Resend.
+// Only a vetted first name and the allowlisted experience and date go in, never the
+// free text message, so the form cannot be used to mail arbitrary text to a stranger.
+// The idempotency key allows one confirmation per address per 24 hours.
+async function sendAutoReply(env, d) {
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+        'Idempotency-Key': `scentandstory/inquiry-autoreply/${await sha256(d.email.toLowerCase())}`,
+      },
+      body: JSON.stringify({
+        to: [d.email],
+        template: {
+          id: env.AUTOREPLY_TEMPLATE,
+          variables: { NAME: greetingName(d.firstName), INQUIRY: inquirySummary(d) },
+        },
+        tags: [{ name: 'source', value: 'website_autoreply' }],
+      }),
+    });
+    // 409 means this address already got a confirmation in the last 24 hours.
+    if (!res.ok && res.status !== 409) {
+      const detail = await res.text().catch(() => '');
+      console.error('contact: Resend rejected the auto reply', res.status, detail.slice(0, 300));
+    }
+  } catch (err) {
+    console.error('contact: auto reply failed', err && err.message);
+  }
 }
 
 // ------------------------------------------------------------------ helpers
@@ -234,6 +271,23 @@ function formatDate(iso) {
   const date = new Date(Date.UTC(y, m - 1, d));
   if (Number.isNaN(date.getTime())) return iso;
   return date.toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+}
+
+// The first name only if it reads as a name. Digits, dots, links or symbols fall
+// back to "there", so the greeting cannot carry a URL or a pitch.
+function greetingName(first) {
+  return /^[\p{L}\p{M}][\p{L}\p{M}' ’-]{0,39}$/u.test(first) ? first : 'there';
+}
+
+function inquirySummary(d) {
+  const what =
+    d.experience === 'Not sure yet' ? 'your event' : d.experience === 'A custom signature scent' ? 'a custom signature scent' : d.experience;
+  return d.eventDate ? `${what} on ${formatDate(d.eventDate)}` : what;
+}
+
+async function sha256(text) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 function rows(d) {
