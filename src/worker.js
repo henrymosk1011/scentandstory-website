@@ -2,10 +2,14 @@
 // Static files in dist/ are served directly by Workers Static Assets.
 // This script only runs for /api/* (see run_worker_first in wrangler.jsonc).
 //
-// Required secret:   RESEND_API_KEY   (npx wrangler secret put RESEND_API_KEY)
+// Required secrets:  RESEND_API_KEY        (npx wrangler secret put RESEND_API_KEY)
+//                    TURNSTILE_SECRET_KEY  (only while src/config.mjs has a turnstileSiteKey)
 // Plain variables:   CONTACT_TO, CONTACT_FROM, ALLOWED_ORIGINS, AUTOREPLY_TEMPLATE (wrangler.jsonc "vars")
 
+import site from './config.mjs';
+
 const MAX_BODY_BYTES = 20_000;
+const TURNSTILE_VERIFY = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 const MIN_FILL_MS = 2500; // humans take longer than this to fill the form
 
 const LIMITS = {
@@ -27,6 +31,11 @@ const EXPERIENCES = new Set([
   'The Signature Soirée',
   'A custom signature scent',
 ]);
+
+// Words that only ever show up in spam (lowercase). A submission that contains one
+// in the name, email, location or message gets a quiet success and is never sent.
+// The "Biasp" bot signs as RobertBiasp, WillieBiaspGM, KevinBiaspGM and so on.
+const BLOCKED_WORDS = ['biasp'];
 
 const API_HEADERS = {
   'Cache-Control': 'no-store',
@@ -73,9 +82,9 @@ async function handleContact(request, env, url, ctx) {
     return reply(request, 413, { ok: false, message: 'That message is a little too long. Please shorten it and try again.' });
   }
 
+  const ip = request.headers.get('CF-Connecting-IP') || '';
   if (env.CONTACT_LIMITER) {
-    const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
-    const { success } = await env.CONTACT_LIMITER.limit({ key: `contact:${ip}` });
+    const { success } = await env.CONTACT_LIMITER.limit({ key: `contact:${ip || 'unknown'}` });
     if (!success) {
       return reply(request, 429, { ok: false, message: 'Too many messages in a short time. Please wait a minute and try again.' });
     }
@@ -97,9 +106,30 @@ async function handleContact(request, env, url, ctx) {
   for (const [key, max] of Object.entries(LIMITS)) data[key] = clean(raw[key], max, key === 'message');
   if (!EXPERIENCES.has(data.experience)) data.experience = 'Not sure yet';
 
+  const haystack = [data.firstName, data.lastName, data.email, data.location, data.message].join(' ').toLowerCase();
+  if (BLOCKED_WORDS.some((word) => haystack.includes(word))) {
+    console.log('contact: dropped a submission containing a blocked word');
+    return reply(request, 200, { ok: true });
+  }
+
   const errors = validate(data);
   if (Object.keys(errors).length) {
     return reply(request, 422, { ok: false, message: 'Please correct the highlighted fields.', errors });
+  }
+
+  // Cloudflare Turnstile: the token proves a real browser passed the check.
+  // Checked after field validation so a typo does not use up the token.
+  if (site.turnstileSiteKey) {
+    if (!env.TURNSTILE_SECRET_KEY) {
+      console.error('contact: TURNSTILE_SECRET_KEY is not configured');
+      return reply(request, 503, { ok: false, message: genericFailure(env) });
+    }
+    if (!(await verifyTurnstile(raw['cf-turnstile-response'], ip, env))) {
+      return reply(request, 403, {
+        ok: false,
+        message: `We could not confirm that this inquiry came from a person. Please try again, or email us directly at ${contactEmail(env)}.`,
+      });
+    }
   }
 
   if (!env.RESEND_API_KEY || !env.CONTACT_TO || !env.CONTACT_FROM) {
@@ -175,6 +205,25 @@ async function sendAutoReply(env, d) {
 
 // ------------------------------------------------------------------ helpers
 
+// Tokens are single use and expire after five minutes. A network failure throws
+// and is answered with the generic failure message.
+async function verifyTurnstile(token, ip, env) {
+  if (typeof token !== 'string' || !token || token.length > 2048) {
+    console.warn('contact: missing or malformed Turnstile token');
+    return false;
+  }
+  const res = await fetch(TURNSTILE_VERIFY, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ secret: env.TURNSTILE_SECRET_KEY, response: token, ...(ip && { remoteip: ip }) }),
+    signal: AbortSignal.timeout(10_000),
+  });
+  const result = await res.json().catch(() => ({}));
+  if (result.success === true) return true;
+  console.warn('contact: Turnstile rejected the token', res.status, (result['error-codes'] || []).join(','));
+  return false;
+}
+
 async function readBody(request) {
   const type = (request.headers.get('Content-Type') || '').toLowerCase();
   const text = await request.text();
@@ -210,6 +259,8 @@ function validate(d) {
   else if (!/^[^\s@<>()"',;:]+@[^\s@<>()"',;:]+\.[A-Za-z]{2,}$/.test(d.email)) e.email = 'Please enter a valid email address, like name@example.com.';
   if (d.phone && !/^[0-9+().\s‐-―-]{7,40}$/.test(d.phone)) e.phone = 'Please enter a valid phone number.';
   if (d.eventDate && !/^\d{4}-\d{2}-\d{2}$/.test(d.eventDate)) e.eventDate = 'Please choose a valid date.';
+  // A day of slack so a visitor west of UTC can still pick their own today.
+  else if (d.eventDate && d.eventDate < new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)) e.eventDate = 'Please choose a date that has not already passed.';
   if (d.guests && (!/^\d{1,5}$/.test(d.guests) || Number(d.guests) < 1)) e.guests = 'Please enter a guest count between 1 and 5000.';
   if (!d.message) e.message = 'Please share a few details about your event.';
   return e;
@@ -285,9 +336,12 @@ function emailHtml(d) {
 </td></tr></table></body></html>`;
 }
 
+function contactEmail(env) {
+  return String(env.CONTACT_TO || 'info@scentandstory.co').split(',')[0].trim();
+}
+
 function genericFailure(env) {
-  const to = String(env.CONTACT_TO || 'info@scentandstory.co').split(',')[0].trim();
-  return `Sorry, something went wrong and your inquiry was not sent. Please try again, or email us directly at ${to}.`;
+  return `Sorry, something went wrong and your inquiry was not sent. Please try again, or email us directly at ${contactEmail(env)}.`;
 }
 
 function json(status, body, extra = {}) {

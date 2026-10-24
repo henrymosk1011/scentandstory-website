@@ -24,6 +24,11 @@ export default {
   },
   socialHandle: '@scentandstory.co',
 
+  // Cloudflare Turnstile site key for the inquiry form (public, safe to commit).
+  // The matching secret is the Worker secret TURNSTILE_SECRET_KEY. Leave empty
+  // to turn the check off.
+  turnstileSiteKey: '0x4AAAAAAFkYyN0UzxFmfELy',
+
   designer: {
     name: 'TENELEVENMEDIA',
     url: 'https://tenelevenmedia.com',

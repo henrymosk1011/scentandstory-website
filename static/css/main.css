@@ -947,8 +947,9 @@ a:hover .roll__b, a:focus-visible .roll__b { transform: translateY(0); }
 }
 
 .form {
+  --form-gap: 1.75rem;
   display: grid;
-  gap: 1.75rem;
+  gap: var(--form-gap);
   padding: clamp(1.5rem, 4vw, 3rem);
   border-radius: var(--radius-lg);
   background: var(--cream);
@@ -998,6 +999,11 @@ a:hover .roll__b, a:focus-visible .roll__b { transform: translateY(0); }
 .field__input[aria-invalid='true'] { border-color: var(--wine); border-width: 2px; background: #fff3f3; }
 
 .form__trap { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+/* Turnstile is invisible for most visitors. Until it needs a click, pull the
+   footer up so the empty widget row does not leave an extra gap. */
+.form__captcha:not(.is-visible) ~ .form__footer { margin-top: calc(-1 * var(--form-gap)); }
+.form__noscript { padding: 1rem 1.25rem; border-radius: 0.85rem; background: #fff3f3; color: var(--wine-deep); font-weight: 500; }
+.form__noscript a { color: var(--wine); }
 .form__footer { display: grid; gap: 1.25rem; align-items: center; }
 .form__privacy { font-size: 0.875rem; color: var(--ink-soft); }
 .form__privacy a { color: var(--wine); }

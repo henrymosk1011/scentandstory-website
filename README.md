@@ -13,16 +13,17 @@ Designed by [TENELEVENMEDIA](https://tenelevenmedia.com).
 | GSAP 3.15 + ScrollTrigger + SplitText, Lenis 1.3 | Smooth scroll, pinned horizontal scroll, split text reveals, parallax. Vendored in `static/vendor/`. |
 | Cloudflare Workers + Static Assets | Serves `dist/` from the edge. A tiny Worker (`src/worker.js`) only handles `/api/contact`. |
 | Resend | Delivers inquiry form submissions to `info@scentandstory.co` and sends the visitor a confirmation from a Resend template. |
+| Cloudflare Turnstile | Spam check on the inquiry form. Invisible for most visitors, a checkbox only when Cloudflare is unsure. |
 
 ## Project layout
 
 ```
 src/
-  config.mjs        business name, email, domain, social links (edit here)
+  config.mjs        business name, email, domain, social links, Turnstile site key (edit here)
   content.mjs       packages, FAQ, testimonials (also feeds Google structured data)
   pages/            one HTML file per page, with JSON front matter for SEO
   partials/         layout, header, footer, form
-  worker.js         contact API (validation, spam traps, rate limit, Resend)
+  worker.js         contact API (validation, spam traps, Turnstile, rate limit, Resend)
 static/             copied to dist/ as is (css, js, fonts, images, icons)
 build.mjs           builds dist/, sitemap.xml, robots.txt, manifest, _headers (CSP)
 wrangler.jsonc      Cloudflare Worker config
@@ -33,8 +34,11 @@ wrangler.jsonc      Cloudflare Worker config
 ```bash
 npm install
 cp .dev.vars.example .dev.vars   # add a Resend API key to test real sends
-npm run dev                      # http://localhost:8787, rebuilds on save
+TURNSTILE_SITE_KEY=1x00000000000000000000AA npm run dev   # http://localhost:8787, rebuilds on save
 ```
+
+The real Turnstile widget only runs on `scentandstory.co` and `henrymm.workers.dev`, so local
+development uses Cloudflare's always pass test keys (the secret is already in `.dev.vars.example`).
 
 `npm run build` writes the static site to `dist/` without starting a server.
 
@@ -76,11 +80,18 @@ Build history is in the Cloudflare dashboard under **Workers & Pages**, `scentan
   `info@scentandstory.co` with replies going to the same inbox. Sender, subject and copy live in the template:
   edit it in Resend and click **Publish**, no deploy needed. `NAME` and `INQUIRY` are filled in by the Worker.
   Set `AUTOREPLY_TEMPLATE` in `wrangler.jsonc` to `""` to turn it off.
+* Turnstile widget `scentandstory-inquiry-form` (Managed mode, hostnames `scentandstory.co` and
+  `henrymm.workers.dev`, subdomains included). Its site key is `turnstileSiteKey` in `src/config.mjs`,
+  its secret is the Worker secret `TURNSTILE_SECRET_KEY`. Solve rates are under **Turnstile** in the dashboard.
 
 ### Maintenance
 
 * **Rotate the email key:** create a new sending only key in Resend for `scentandstory.co`, save it with
   `npx wrangler secret put RESEND_API_KEY` (or Worker, **Settings**, **Variables and Secrets**), then delete the old key.
+* **Rotate the Turnstile secret:** **Turnstile**, `scentandstory-inquiry-form`, **Rotate secret key**, then save the
+  new one with `npx wrangler secret put TURNSTILE_SECRET_KEY`. Submissions fail until both sides match.
+* **Block a new spam signature:** add the word, in lowercase, to `BLOCKED_WORDS` in `src/worker.js`. Matching
+  submissions get a quiet success and are never emailed.
 * **Google Workspace DKIM:** if `google._domainkey` does not exist yet, generate it in the Google Admin console
   (**Apps**, **Google Workspace**, **Gmail**, **Authenticate email**), add the TXT record in Cloudflare, then
   click **Start authentication**. DMARC is `p=quarantine`, so mail from Gmail needs DKIM to survive forwarding.
@@ -109,15 +120,18 @@ Built to WCAG 2.2 AA and audited with axe-core in every mode (0 violations):
 * Keyboard friendly menu (focus moves in, `Esc` closes, background is inert), accordion buttons with
   `aria-expanded`, and stacked cards that never hide a focused control.
 * Form fields have visible labels, required text, inline errors linked with `aria-describedby`,
-  and a live status region. Without JavaScript the form still posts and redirects to `/thanks/`.
+  and a live status region. The Turnstile spam check needs JavaScript, so without it the form shows
+  a note pointing visitors to the email address instead.
 
 ## Security
 
-* Strict Content Security Policy (no third party scripts, inline boot script allowed by hash),
+* Strict Content Security Policy (inline boot script allowed by hash; the only third party script is
+  Cloudflare Turnstile, allowed for `script-src` and `frame-src` and loaded only once the inquiry form nears the screen),
   HSTS, `nosniff`, `frame-ancestors 'none'`, locked down Permissions Policy. See `dist/_headers`.
-* Contact API: same origin check, 20 KB body limit, honeypot and minimum fill time traps,
-  per IP rate limit (5 per minute), server side validation, HTML escaped email body, and the
-  Resend key kept as a Worker secret.
+* Contact API: same origin check, 20 KB body limit, honeypot and minimum fill time traps, a blocked
+  word list for known spam signatures, per IP rate limit (5 per minute), server side validation (including
+  no past event dates), a Turnstile token checked with Cloudflare's siteverify API (fails closed if the
+  secret is missing), HTML escaped email body, and the Resend and Turnstile keys kept as Worker secrets.
 * Auto reply: never echoes the visitor's message, only a first name that passes a letters only check
   and the allowlisted experience and date. An idempotency key allows one confirmation per address
   per 24 hours, so the form cannot be used to flood someone else's inbox.

@@ -158,6 +158,16 @@
     var started = $('[data-started]', form);
     var dateInput = $('#f-date', form);
     var sending = false;
+    var queued = false; // a submit waiting for the spam check token
+    var queueTimer = 0;
+    var fallbackMessage = 'Sorry, something went wrong and your inquiry was not sent. Please try again, or email us directly at info@scentandstory.co.';
+    var captchaMessage = 'Our spam check could not run. Please refresh the page and try again, or email us directly at info@scentandstory.co.';
+    var checkMessage = 'Please complete the quick security check above the Send button, and your inquiry will go out.';
+    var captcha = initCaptcha(form, {
+      token: function () { if (queued) { stopQueue(); attempt(); } },
+      fail: function () { if (queued) { stopQueue(); showStatusError(captchaMessage); } },
+      interactive: function () { if (queued) status.textContent = checkMessage; },
+    });
     form.noValidate = true; // native validation stays on when JavaScript is unavailable
     if (started) started.value = String(Date.now());
     if (dateInput) {
@@ -199,8 +209,22 @@
       });
     });
 
+    function showStatusError(msg) {
+      status.className = 'form__status is-error';
+      status.textContent = msg;
+    }
+
+    function stopQueue() {
+      queued = false;
+      clearTimeout(queueTimer);
+    }
+
     form.addEventListener('submit', function (e) {
       e.preventDefault();
+      attempt();
+    });
+
+    function attempt() {
       if (sending) return;
       var firstInvalid = null;
       var count = 0;
@@ -217,6 +241,19 @@
         return;
       }
 
+      // Wait for the Turnstile token, then send automatically.
+      if (captcha && !captcha.token()) {
+        if (captcha.failed()) { showStatusError(captchaMessage); return; }
+        queued = true;
+        captcha.start();
+        status.textContent = captcha.interactive() ? checkMessage : 'One moment while we confirm you are not a bot.';
+        clearTimeout(queueTimer);
+        queueTimer = setTimeout(function () {
+          if (queued && !captcha.interactive()) { stopQueue(); showStatusError(captchaMessage); }
+        }, 20000);
+        return;
+      }
+
       sending = true;
       submit.setAttribute('aria-disabled', 'true');
       $('.btn__label', submit).textContent = 'Sending';
@@ -224,6 +261,7 @@
 
       var data = {};
       new FormData(form).forEach(function (v, k) { data[k] = typeof v === 'string' ? v.trim() : v; });
+      if (captcha) data['cf-turnstile-response'] = captcha.token();
 
       fetch(form.action, {
         method: 'POST',
@@ -235,6 +273,7 @@
         })
         .then(function (r) {
           if (!r.ok || !r.body.ok) throw r.body;
+          if (captcha) captcha.remove();
           var success = doc.createElement('div');
           success.className = 'form-success';
           success.setAttribute('tabindex', '-1');
@@ -249,6 +288,7 @@
           if (window.ScrollTrigger) ScrollTrigger.refresh();
         })
         .catch(function (err) {
+          if (captcha) captcha.reset(); // the server may have used up the token
           var fieldErrors = (err && err.errors) || {};
           var first = null;
           Object.keys(fieldErrors).forEach(function (name) {
@@ -258,8 +298,7 @@
               if (!first) first = input;
             }
           });
-          status.className = 'form__status is-error';
-          status.textContent = (err && err.message) || 'Sorry, something went wrong and your inquiry was not sent. Please try again, or email us directly at info@scentandstory.co.';
+          showStatusError((err && err.message) || fallbackMessage);
           if (first) first.focus();
         })
         .then(function () {
@@ -268,7 +307,83 @@
           var label = $('.btn__label', submit);
           if (label) label.textContent = 'Send inquiry';
         });
-    });
+    }
+  }
+
+  /* Cloudflare Turnstile spam check for the inquiry form. The script only loads
+     once the form is near the screen or gets focus, and the widget stays hidden
+     unless Cloudflare asks the visitor to tick a box. The server verifies the
+     token in src/worker.js. */
+  function initCaptcha(form, on) {
+    var box = $('[data-turnstile]', form);
+    if (!box) return null;
+    var token = '';
+    var failed = false;
+    var interactive = false;
+    var widget = null;
+    var requested = false;
+
+    function show(visible) {
+      box.classList.toggle('is-visible', visible);
+      if (window.ScrollTrigger) setTimeout(function () { ScrollTrigger.refresh(); }, 400);
+    }
+
+    function fail() {
+      token = '';
+      failed = true;
+      on.fail();
+    }
+
+    function render() {
+      widget = window.turnstile.render(box, {
+        sitekey: box.getAttribute('data-turnstile'),
+        action: 'inquiry',
+        theme: 'light',
+        size: box.clientWidth < 300 ? 'compact' : 'flexible',
+        appearance: 'interaction-only',
+        callback: function (t) { token = t; failed = false; interactive = false; on.token(); },
+        'expired-callback': function () { token = ''; },
+        'error-callback': function () { show(true); fail(); }, // Cloudflare's widget explains the problem
+        'before-interactive-callback': function () { interactive = true; show(true); on.interactive(); },
+        'after-interactive-callback': function () { interactive = false; },
+      });
+    }
+
+    function start() {
+      if (requested) return;
+      requested = true;
+      window.__ssTurnstileReady = render;
+      var script = doc.createElement('script');
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=__ssTurnstileReady';
+      script.async = true;
+      script.onerror = fail;
+      doc.head.appendChild(script);
+    }
+
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function (entries) {
+        if (entries.some(function (e) { return e.isIntersecting; })) { io.disconnect(); start(); }
+      }, { rootMargin: '600px 0px' });
+      io.observe(form);
+    } else start();
+    form.addEventListener('focusin', start);
+
+    return {
+      start: start,
+      token: function () { return token; },
+      failed: function () { return failed; },
+      interactive: function () { return interactive; },
+      reset: function () {
+        token = '';
+        if (widget === null) return;
+        show(false);
+        window.turnstile.reset(widget);
+      },
+      remove: function () {
+        if (widget !== null) window.turnstile.remove(widget);
+        widget = null;
+      },
+    };
   }
 
   /* -------------------------------------------------------------- gallery lightbox */
