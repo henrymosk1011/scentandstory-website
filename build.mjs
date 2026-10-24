@@ -32,6 +32,12 @@ const photos = JSON.parse(read(join(STATIC, 'img/photos/manifest.json')));
 // only ever see the real domain.
 const BASE = (process.env.BASE_PATH || '').replace(/\/+$/, '');
 const PREVIEW = process.env.PREVIEW === '1';
+// Turnstile always passes with Cloudflare's test key, so the preview (served from a
+// host the real widget does not allow) behaves like production without a real check.
+// TURNSTILE_SITE_KEY overrides the key, for example with the test key in local dev.
+const TURNSTILE_TEST_KEY = '1x00000000000000000000AA';
+const turnstileKey = process.env.TURNSTILE_SITE_KEY || (PREVIEW && site.turnstileSiteKey ? TURNSTILE_TEST_KEY : site.turnstileSiteKey);
+const TURNSTILE_ORIGIN = 'https://challenges.cloudflare.com';
 const withBase = (text) =>
   !BASE
     ? text
@@ -102,6 +108,16 @@ function social(variant) {
       })
       .join('') +
     '</ul>'
+  );
+}
+
+// Spam check container for the inquiry form. main.js loads Turnstile into it once
+// the form comes near the screen, so visitors who never reach the form never load it.
+function captcha() {
+  if (!turnstileKey) return '';
+  return (
+    `          <div class="form__captcha" data-turnstile="${esc(turnstileKey)}"></div>\n` +
+    `          <noscript><p class="form__noscript">Our spam check needs JavaScript. Please turn it on to send this form, or email us at <a href="mailto:${esc(site.email)}">${esc(site.email)}</a>.</p></noscript>`
   );
 }
 
@@ -280,6 +296,7 @@ function render(tpl, page) {
     .replace(/\{\{roll:([^}]*)\}\}/g, (_, t) => `<span class="roll"><span class="roll__a">${t}</span><span class="roll__b" aria-hidden="true">${t}</span></span>`)
     .replace(/\{\{asset:([^}]*)\}\}/g, (_, p) => assetUrl(p))
     .replace(/\{\{social(?::(\w+))?\}\}/g, (_, v) => social(v))
+    .replace(/\{\{captcha\}\}/g, () => captcha())
     .replace(/\{\{jsonld\}\}/g, () => jsonld(page))
     .replace(/\{\{bootScript\}\}/g, () => bootScript)
     .replace(/\{\{year\}\}/g, year)
@@ -348,10 +365,13 @@ writeFileSync(
 // ---------------------------------------------------------------- headers
 // Static asset responses get these from Cloudflare. API responses set their own
 // headers inside src/worker.js. When you add analytics, extend script-src and
-// connect-src here with the provider's domains.
+// connect-src here with the provider's domains. Turnstile needs its script and
+// its challenge iframe from challenges.cloudflare.com.
+const turnstileSrc = turnstileKey ? ` ${TURNSTILE_ORIGIN}` : '';
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'sha256-${bootHash}'`,
+  `script-src 'self' 'sha256-${bootHash}'${turnstileSrc}`,
+  ...(turnstileKey ? [`frame-src 'self' ${TURNSTILE_ORIGIN}`] : []),
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
   "font-src 'self'",
